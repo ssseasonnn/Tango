@@ -1,0 +1,2 @@
+include ':app', ':tango'
+rootProject.name='TangoApp'
