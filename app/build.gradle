@@ -1,16 +1,13 @@
 apply plugin: 'com.android.application'
-
 apply plugin: 'kotlin-android'
 
-apply plugin: 'kotlin-android-extensions'
-
 android {
-    compileSdkVersion 29
-    buildToolsVersion "29.0.2"
+    namespace 'zlc.season.tangoapp'
+    compileSdkVersion 33
     defaultConfig {
         applicationId "zlc.season.tangoapp"
         minSdkVersion 17
-        targetSdkVersion 29
+        targetSdkVersion 33
         versionCode 1
         versionName "1.0"
     }
@@ -24,12 +21,9 @@ android {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-    //noinspection GradleCompatible
-    implementation 'com.android.support:appcompat-v7:28.0.0'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+    implementation 'androidx.appcompat:appcompat:1.6.1'
 
-    implementation 'com.github.ssseasonnn:Tango:1.0.0'
-//    implementation project(path: ':tango')
-
-    testImplementation 'junit:junit:4.12'
+//    implementation 'com.github.ssseasonnn:Tango:1.0.0'
+    implementation project(path: ':tango')
 }

@@ -3,7 +3,7 @@ package zlc.season.tango
 import android.util.Log.*
 
 private var DEBUG = true
-private var LOG_TAG = "TAG"
+private var LOG_TAG = "TANGO"
 
 fun setLogTag(tag: String) {
     LOG_TAG = tag
@@ -40,12 +40,12 @@ fun <T> T.logv(prefix: String = "", tag: String = ""): T {
 
 private fun <T> T.innerLog(
     function1: (String, String, Throwable) -> Int,
-    function2: (String, String?) -> Int,
+    function2: (String, String) -> Int,
     prefix: String,
     tag: String
 ) {
     if (DEBUG) {
-        val realTag = if (tag.isNotEmpty()) tag else LOG_TAG
+        val realTag = tag.ifEmpty { LOG_TAG }
         if (this is Throwable) {
             function1(realTag, "$prefix ${this.message}", this)
         } else {
