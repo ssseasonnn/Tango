@@ -1,18 +1,21 @@
 package zlc.season.tango
 
+import android.graphics.Rect
 import android.os.SystemClock
-import android.view.LayoutInflater
+import android.util.Size
 import android.view.View
-import android.view.ViewGroup
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewTreeLifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.Runnable
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.channels.onFailure
 import kotlinx.coroutines.channels.trySendBlocking
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 
@@ -32,19 +35,25 @@ val View.lifecycle: Lifecycle
         return context.findLifecycle() ?: throw IllegalStateException("Lifecycle not found")
     }
 
-suspend fun View.wait() = suspendCancellableCoroutine {
-    val runnable = Runnable {
-        if (it.isActive) {
-            it.resumeWith(Result.success(Unit))
-        }
-    }
-    it.invokeOnCancellation {
-        removeCallbacks(runnable)
-    }
-    post(runnable)
+fun View.gone() {
+    visibility = View.GONE
 }
 
-fun <T : View> T.click(delay: Long = 500, block: (T) -> Unit) {
+fun View.visible() {
+    visibility = View.VISIBLE
+}
+
+fun View.invisible() {
+    visibility = View.INVISIBLE
+}
+
+fun View.visually(flag: Boolean) {
+    if (flag) visible() else gone()
+}
+
+const val CLICK_DEBOUNCE = 500L
+
+fun <T : View> T.click(delay: Long = CLICK_DEBOUNCE, block: (T) -> Unit) {
     var time: Long = 0
     setOnClickListener {
         val clickTime = SystemClock.elapsedRealtime()
@@ -52,6 +61,13 @@ fun <T : View> T.click(delay: Long = 500, block: (T) -> Unit) {
             time = clickTime
             block(this)
         }
+    }
+}
+
+fun <T : View> T.longClick(block: (T) -> Unit) {
+    setOnLongClickListener {
+        block(this@longClick)
+        return@setOnLongClickListener true
     }
 }
 
@@ -76,7 +92,7 @@ fun <T : View> T.multiClick(delay: Long = 500, block: (T, Int) -> Unit) {
     }
 }
 
-fun View.suspendClick(block: suspend (View) -> Unit) {
+fun <T : View> T.suspendClick(block: suspend (T) -> Unit) {
     click {
         activityScope.launch {
             block(it)
@@ -84,7 +100,7 @@ fun View.suspendClick(block: suspend (View) -> Unit) {
     }
 }
 
-fun View.suspendMultiClick(oneShot: suspend (View) -> Unit, doubleClick: suspend (View) -> Unit) {
+fun <T : View> T.suspendMultiClick(oneShot: suspend (T) -> Unit, doubleClick: suspend (T) -> Unit) {
     multiClick(400) { v, count ->
         activityScope.launch {
             if (count >= 2) {
@@ -96,40 +112,77 @@ fun View.suspendMultiClick(oneShot: suspend (View) -> Unit, doubleClick: suspend
     }
 }
 
-fun View.suspendLongClick(block: suspend (View) -> Unit) {
+fun <T : View> T.suspendLongClick(block: suspend (T) -> Unit) {
     setOnLongClickListener {
         activityScope.launch {
-            block(it)
+            block(this@suspendLongClick)
         }
         return@setOnLongClickListener true
     }
 }
 
-fun View.clickFlow(): Flow<View> = callbackFlow {
-    this@clickFlow.setOnClickListener {
-        channel.trySendBlocking(it).onFailure {}
+@OptIn(FlowPreview::class)
+fun <T : View> T.clickFlow(delay: Long = CLICK_DEBOUNCE): Flow<T> = callbackFlow {
+    setOnClickListener {
+        channel.trySendBlocking(this@clickFlow).onFailure {}
     }
     awaitClose {
-        this@clickFlow.setOnClickListener(null)
+        setOnClickListener(null)
+    }
+}.debounce(delay)
+
+suspend fun View.wait() = suspendCancellableCoroutine {
+    val runnable = Runnable {
+        if (it.isActive) {
+            it.resumeWith(Result.success(Unit))
+        }
+    }
+    it.invokeOnCancellation {
+        removeCallbacks(runnable)
+    }
+    post(runnable)
+}
+
+suspend fun View.getSize(): Size = suspendCancellableCoroutine {
+    val runnable = Runnable {
+        if (it.isActive) {
+            it.resumeWith(Result.success(Size(width, height)))
+        }
+    }
+    it.invokeOnCancellation {
+        removeCallbacks(runnable)
+    }
+    post(runnable)
+}
+
+suspend fun View.getScreenRect(): Rect = suspendCancellableCoroutine {
+    val rect = getScreenRectDirect()
+    if (rect.isEmpty) {
+        val runnable = Runnable {
+            if (it.isActive) {
+                it.resumeWith(Result.success(getScreenRectDirect()))
+            }
+        }
+        it.invokeOnCancellation {
+            removeCallbacks(runnable)
+        }
+        post(runnable)
+    } else {
+        it.resumeWith(Result.success(rect))
     }
 }
 
-fun View.gone() {
-    visibility = View.GONE
-}
+fun View.getScreenRectDirect(): Rect {
+    val intArray = IntArray(2)
+    getLocationInWindow(intArray)
 
-fun View.visible() {
-    visibility = View.VISIBLE
-}
+    val x = intArray[0]
+    val y = intArray[1]
 
-fun View.invisible() {
-    visibility = View.INVISIBLE
-}
-
-fun View.visually(flag: Boolean) {
-    if (flag) visible() else gone()
-}
-
-fun ViewGroup.inflate(res: Int, attach: Boolean = false): View {
-    return LayoutInflater.from(this.context).inflate(res, this, attach)
+    val rect = Rect()
+    rect.left = x
+    rect.top = y
+    rect.right = x + width
+    rect.bottom = y + height
+    return rect
 }

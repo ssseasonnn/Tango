@@ -6,7 +6,7 @@ android {
     namespace 'zlc.season.tango'
     compileSdkVersion 33
     defaultConfig {
-        minSdkVersion 17
+        minSdkVersion 21
         targetSdkVersion 33
     }
 
