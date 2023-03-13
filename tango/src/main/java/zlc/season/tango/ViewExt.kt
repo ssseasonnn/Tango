@@ -4,6 +4,12 @@ import android.graphics.Rect
 import android.os.SystemClock
 import android.util.Size
 import android.view.View
+import android.view.ViewGroup
+import androidx.core.view.marginBottom
+import androidx.core.view.marginLeft
+import androidx.core.view.marginRight
+import androidx.core.view.marginTop
+import androidx.core.view.updateLayoutParams
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewTreeLifecycleOwner
 import androidx.lifecycle.lifecycleScope
@@ -185,4 +191,37 @@ fun View.getScreenRectDirect(): Rect {
     rect.right = x + width
     rect.bottom = y + height
     return rect
+}
+
+fun View.updateWidth(newWidth: Int) {
+    updateLayoutParams<ViewGroup.LayoutParams> {
+        width = newWidth
+    }
+}
+
+fun View.updateHeight(newHeight: Int) {
+    updateLayoutParams<ViewGroup.LayoutParams> {
+        height = newHeight
+    }
+}
+
+fun View.updateSize(newWidth: Int = width, newHeight: Int = height) {
+    updateLayoutParams<ViewGroup.LayoutParams> {
+        width = newWidth
+        height = newHeight
+    }
+}
+
+fun View.updateMargin(
+    newLeftMargin: Int = marginLeft,
+    newTopMargin: Int = marginTop,
+    newRightMargin: Int = marginRight,
+    newBottomMargin: Int = marginBottom
+) {
+    updateLayoutParams<ViewGroup.MarginLayoutParams> {
+        leftMargin = newLeftMargin
+        topMargin = newTopMargin
+        rightMargin = newRightMargin
+        bottomMargin = newBottomMargin
+    }
 }
